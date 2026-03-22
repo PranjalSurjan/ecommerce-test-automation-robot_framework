@@ -1,13 +1,6 @@
 name: E-Commerce Robot Framework Test Suite
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
-
   # -------------------------------------------------------
   # Scheduled runs — uncomment to enable automatic execution
   # -------------------------------------------------------
@@ -121,7 +114,47 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "> 📎 Download the full HTML report from the **Artifacts** section above." >> $GITHUB_STEP_SUMMARY
 
-      # ── 8. Fail the job if tests failed ───────────────────
+      # ── 8. Send Email Report ──────────────────────────────
+      # Requires SMTP credentials to be added under:
+      # GitHub → Settings → Secrets → Actions:
+      #   MAIL_USERNAME  — sender Gmail address
+      #   MAIL_PASSWORD  — Gmail App Password (not account password)
+      - name: Send Email Report
+        if: always()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: |
+            🤖 Robot Framework Test Report — Suite: ${{ github.event.inputs.suite || 'smoke' }} | Run #${{ github.run_number }} | ${{ job.status }}
+          to: Pranjalsurjan03@gmail.com
+          from: Robot Framework CI <${{ secrets.MAIL_USERNAME }}>
+          body: |
+            Hi Pranjal,
+
+            Your scheduled Robot Framework test run has completed.
+
+            ─────────────────────────────────────
+            DETAILS
+            ─────────────────────────────────────
+            Suite       : ${{ github.event.inputs.suite || 'smoke' }}
+            Status      : ${{ job.status }}
+            Branch      : ${{ github.ref_name }}
+            Run Number  : #${{ github.run_number }}
+            Triggered By: ${{ github.event_name }}
+            ─────────────────────────────────────
+
+            📎 Full HTML report is attached to this email.
+            🔗 View run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+            Regards,
+            GitHub Actions CI
+          attachments: results/report.html
+
+      # ── 9. Fail the job if tests failed ───────────────────
       - name: Check Test Results
         run: |
           python -c "
