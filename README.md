@@ -4,7 +4,7 @@
 ![Python](https://img.shields.io/badge/Python-3.11-blue?style=for-the-badge&logo=python&logoColor=white)
 ![Selenium](https://img.shields.io/badge/SeleniumLibrary-6.3-green?style=for-the-badge&logo=selenium&logoColor=white)
 ![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-CI%2FCD-2088FF?style=for-the-badge&logo=githubactions&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)
+
 
 A scalable, production-grade test automation framework built with **Robot Framework** and **SeleniumLibrary** for a live e-commerce web application — [TesterBud Practice E-Commerce](https://testerbud.com/practice-ecommerece-website).
 
