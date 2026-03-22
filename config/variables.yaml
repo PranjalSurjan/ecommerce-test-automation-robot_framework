@@ -1,0 +1,5 @@
+BASE_URL: https://testerbud.com/practice-ecommerece-website
+BROWSER: chrome
+IMPLICIT_WAIT: 10s
+TIMEOUT: 15s
+SCREENSHOT_DIR: results/screenshots

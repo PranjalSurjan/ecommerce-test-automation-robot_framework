@@ -1,0 +1,12 @@
+results/
+*.pyc
+__pycache__/
+.venv/
+venv/
+*.log
+selenium-screenshot-*.png
+geckodriver.log
+chromedriver.log
+.idea/
+.vscode/
+*.bak

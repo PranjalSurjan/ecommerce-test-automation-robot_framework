@@ -1,0 +1,4 @@
+robotframework>=7.0
+robotframework-seleniumlibrary>=6.3
+robotframework-browser>=18.0
+webdrivermanager>=0.10.0
