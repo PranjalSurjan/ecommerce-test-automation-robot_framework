@@ -1,0 +1,138 @@
+name: E-Commerce Robot Framework Test Suite
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+  # -------------------------------------------------------
+  # Scheduled runs — uncomment to enable automatic execution
+  # -------------------------------------------------------
+  # schedule:
+  #   - cron: '0 8 * * 1-5'    # Weekdays at 8:00 AM UTC (smoke tests)
+  #   - cron: '0 0 * * 0'      # Every Sunday midnight UTC (full regression)
+
+  # Allows manual trigger from the GitHub Actions tab
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: 'Test suite to run'
+        required: true
+        default: 'smoke'
+        type: choice
+        options:
+          - smoke
+          - critical
+          - regression
+          - e2e
+          - login
+          - signup
+          - products
+          - cart
+          - checkout
+          - security
+          - accessibility
+          - responsive
+          - all
+
+jobs:
+  robot-tests:
+    name: Run Robot Framework Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── 1. Checkout code ──────────────────────────────────
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # ── 2. Set up Python ──────────────────────────────────
+      - name: Set Up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      # ── 3. Install dependencies ───────────────────────────
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # ── 4. Install Chrome & ChromeDriver ──────────────────
+      - name: Set Up Chrome Browser
+        uses: browser-actions/setup-chrome@v1
+        with:
+          chrome-version: stable
+
+      - name: Install ChromeDriver
+        run: |
+          pip install webdriver-manager
+
+      # ── 5. Run tests ──────────────────────────────────────
+      - name: Run Robot Framework Tests
+        run: |
+          SUITE="${{ github.event.inputs.suite || 'smoke' }}"
+
+          if [ "$SUITE" = "all" ]; then
+            echo "Running ALL test suites..."
+            robot \
+              --outputdir results \
+              --loglevel DEBUG \
+              --variable BROWSER:headlesschrome \
+              tests/
+          else
+            echo "Running suite: $SUITE"
+            robot \
+              --outputdir results \
+              --loglevel DEBUG \
+              --variable BROWSER:headlesschrome \
+              --include $SUITE \
+              tests/
+          fi
+        continue-on-error: true
+
+      # ── 6. Upload test results ────────────────────────────
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: robot-test-results-${{ github.run_number }}
+          path: |
+            results/output.xml
+            results/report.html
+            results/log.html
+          retention-days: 30
+
+      # ── 7. Publish HTML report as summary ─────────────────
+      - name: Publish Test Summary
+        if: always()
+        run: |
+          echo "## 🤖 Robot Framework Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Detail        | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Suite Run     | \`${{ github.event.inputs.suite || 'smoke' }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Triggered By  | \`${{ github.event_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Branch        | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Run Number    | \`#${{ github.run_number }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "> 📎 Download the full HTML report from the **Artifacts** section above." >> $GITHUB_STEP_SUMMARY
+
+      # ── 8. Fail the job if tests failed ───────────────────
+      - name: Check Test Results
+        run: |
+          python -c "
+          import xml.etree.ElementTree as ET
+          tree = ET.parse('results/output.xml')
+          root = tree.getroot()
+          stats = root.find('.//total/stat')
+          passed = stats.get('pass', '0')
+          failed = stats.get('fail', '0')
+          print(f'Tests Passed: {passed}')
+          print(f'Tests Failed: {failed}')
+          if int(failed) > 0:
+              exit(1)
+          "
